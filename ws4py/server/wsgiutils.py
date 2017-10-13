@@ -148,7 +148,8 @@ class WebSocketWSGIApplication(object):
             ('Sec-WebSocket-Accept', accept_value),
             ]
         if ws_protocols:
-            upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
+            #upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
+            upgrade_headers.append(('Sec-WebSocket-Protocol', ws_protocols[0]))
         if ws_extensions:
             upgrade_headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
 
