@@ -61,7 +61,7 @@ logger = logging.getLogger('ws4py')
 __all__ = ['WebSocketWSGIApplication']
 
 class WebSocketWSGIApplication(object):
-    def __init__(self, protocols=None, extensions=None, handler_cls=WebSocket):
+    def __init__(self, protocols=None, extensions=None, handler_cls=WebSocket, protocol_selector=None):
         """
         WSGI application usable to complete the upgrade handshake
         by validating the requested protocols and extensions as
@@ -75,6 +75,7 @@ class WebSocketWSGIApplication(object):
         self.protocols = protocols
         self.extensions = extensions
         self.handler_cls = handler_cls
+        self.protocol_selector = protocol_selector
 
     def make_websocket(self, sock, protocols, extensions, environ):
         """
@@ -129,6 +130,13 @@ class WebSocketWSGIApplication(object):
                 s = s.strip()
                 if s in protocols:
                     ws_protocols.append(s)
+        ws_subprotocol = None
+        if self.protocol_selector:
+            # let handler select protocol to use for websocket
+            ws_subprotocol = self.protocol_selector(protocols, ws_protocols)
+        elif ws_protocols:
+            # use first preferred protocol by client
+            ws_subprotocol = ws_protocols[0]
 
         ws_extensions = []
         exts = self.extensions or []
@@ -147,9 +155,11 @@ class WebSocketWSGIApplication(object):
             ('Sec-WebSocket-Version', '%s' % version),
             ('Sec-WebSocket-Accept', accept_value),
             ]
-        if ws_protocols:
-            #upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
-            upgrade_headers.append(('Sec-WebSocket-Protocol', ws_protocols[0]))
+        #if ws_protocols:
+        #    upgrade_headers.append(('Sec-WebSocket-Protocol', ', '.join(ws_protocols)))
+        if ws_subprotocol:
+            # use only one protocol according to spec
+            upgrade_headers.append(('Sec-WebSocket-Protocol', ws_subprotocol))
         if ws_extensions:
             upgrade_headers.append(('Sec-WebSocket-Extensions', ','.join(ws_extensions)))
 
